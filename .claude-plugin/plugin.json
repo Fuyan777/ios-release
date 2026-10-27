@@ -1,0 +1,11 @@
+{
+  "name": "ios-release",
+  "version": "1.0.0",
+  "description": "iOSアプリの企画から App Store に申請できる状態まで Claude が進める。人がやるのは承認と Apple のサイトでの作業だけ。",
+  "author": {
+    "name": "Fuyan777"
+  },
+  "repository": "https://github.com/Fuyan777/ios-release",
+  "license": "MIT",
+  "keywords": ["ios", "app-store", "fastlane", "release"]
+}

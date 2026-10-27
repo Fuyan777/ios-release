@@ -1,0 +1,56 @@
+# App Store Connect に、説明文・スクショ・ビルドを上げる（審査には出さない。提出は App Store Connect の画面で人がする）
+#   fastlane upload_metadata   説明文とスクショだけ
+#   fastlane upload_build      ビルドだけ（TestFlight にも出る）
+# APIキーは環境変数 ASC_KEY_ID / ASC_ISSUER_ID / ASC_PRIVATE_KEY_PATH から読む（キーのファイルはリポジトリの外に置く）
+
+opt_out_usage
+default_platform(:ios)
+
+SCHEME = "__SCHEME__"
+PROJECT = "__PROJECT__"
+
+platform :ios do
+  def api_key
+    app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_filepath: ENV.fetch("ASC_PRIVATE_KEY_PATH")
+    )
+  end
+
+  desc "説明文とスクショを App Store Connect に上げる（ビルドは上げない・審査には出さない）"
+  lane :upload_metadata do
+    upload_to_app_store(
+      api_key: api_key,
+      skip_binary_upload: true,
+      overwrite_screenshots: true,
+      submit_for_review: false,
+      precheck_include_in_app_purchases: false,
+      force: true
+    )
+  end
+
+  desc "ビルドして App Store Connect に上げる（ビルド番号は、上げてあるものの次の番号にする。プロジェクトは書き換えない）"
+  lane :upload_build do
+    key = api_key
+    build_number = latest_testflight_build_number(api_key: key, initial_build_number: 0) + 1
+    UI.message("ビルド番号 #{build_number} でビルドします")
+    build_app(
+      project: PROJECT,
+      scheme: SCHEME,
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "fastlane/build",
+      clean: true,
+      xcargs: [
+        "CURRENT_PROJECT_VERSION=#{build_number}",
+        "-allowProvisioningUpdates",
+        "-authenticationKeyID #{ENV.fetch('ASC_KEY_ID')}",
+        "-authenticationKeyIssuerID #{ENV.fetch('ASC_ISSUER_ID')}",
+        "-authenticationKeyPath '#{ENV.fetch('ASC_PRIVATE_KEY_PATH')}'"
+      ].join(" "),
+      export_xcargs: "-allowProvisioningUpdates"
+    )
+    upload_to_testflight(api_key: key, skip_waiting_for_build_processing: true)
+  end
+end
